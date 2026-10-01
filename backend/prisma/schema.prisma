@@ -1,0 +1,80 @@
+// Store rating platform schema.
+//
+// Constraints Prisma can't express (CHECKs) live in the migration SQL; see
+// prisma/migrations/*_init/migration.sql. Every rule the API validates is also
+// enforced here, so bad rows can't get in through a script or a future bug.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  USER
+  STORE_OWNER
+
+  @@map("user_role")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  /// 20–60 characters (CHECK in migration).
+  name         String   @db.VarChar(60)
+  /// Stored lower-cased (CHECK in migration) so uniqueness is case-insensitive.
+  email        String   @unique @db.VarChar(254)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  address      String   @db.VarChar(400)
+  role         Role     @default(USER)
+  /// Bumped on password change; JWTs carry it, so old sessions stop working.
+  tokenVersion Int      @default(0) @map("token_version")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  store   Store?
+  ratings Rating[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model Store {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(60)
+  email     String   @unique @db.VarChar(254)
+  address   String   @db.VarChar(400)
+  /// One store per owner. RESTRICT: an owner can't be deleted out from under a store.
+  ownerId   Int      @unique @map("owner_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  ratings Rating[]
+
+  @@map("stores")
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  storeId   Int      @map("store_id")
+  /// 1–5 (CHECK in migration).
+  value     Int      @db.SmallInt
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  /// One rating per user per store; "modify" is an upsert on this key.
+  /// It also serves lookups by user_id (leading column).
+  @@unique([userId, storeId])
+  /// Per-store averages and the owner's "who rated me" list.
+  @@index([storeId])
+  @@map("ratings")
+}
