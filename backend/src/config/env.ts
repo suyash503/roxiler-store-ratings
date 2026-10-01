@@ -47,7 +47,7 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     JWT_SECRET: jwtSecret,
     JWT_EXPIRES_IN: str('JWT_EXPIRES_IN', '1d'),
     PORT: port,
-    CORS_ORIGINS: str('CORS_ORIGINS', 'http://localhost:5173')
+    CORS_ORIGINS: str('CORS_ORIGINS', 'http://localhost:5180')
       .split(',')
       .map((origin) => origin.trim())
       .filter(Boolean),
