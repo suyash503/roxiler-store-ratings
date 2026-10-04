@@ -5,9 +5,12 @@
 // enforced here, so bad rows can't get in through a script or a future bug.
 
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
-  moduleFormat = "cjs"
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "cjs"
+  // Explicit, not inferred: without a tsconfig in sight (e.g. the Docker
+  // install step) Prisma defaults to ".ts" imports, which Node can't load.
+  importFileExtension = "js"
 }
 
 datasource db {
