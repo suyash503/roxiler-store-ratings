@@ -84,21 +84,44 @@ export function StoresPage() {
       header: 'Your rating',
       sortKey: 'myRating',
       className: 'whitespace-nowrap',
-      render: (store) => (
-        <div className="flex flex-col items-start gap-0.5">
-          <RatingInput
-            value={store.myRating ?? null}
-            label={`Your rating for ${store.name}`}
-            disabled={rate.isPending && rate.variables?.store.id === store.id}
-            onChange={(value) => rate.mutate({ store, value })}
-          />
-          <span className="text-xs text-stone-500">
-            {store.myRating == null ? 'Not rated yet. Pick a star' : 'Click a star to change'}
-          </span>
-        </div>
-      ),
+      render: (store) => yourRating(store),
     },
   ];
+
+  function yourRating(store: Store) {
+    return (
+      <div className="flex flex-col items-start gap-0.5">
+        <RatingInput
+          value={store.myRating ?? null}
+          label={`Your rating for ${store.name}`}
+          disabled={rate.isPending && rate.variables?.store.id === store.id}
+          onChange={(value) => rate.mutate({ store, value })}
+        />
+        <span className="text-xs text-stone-500">
+          {store.myRating == null ? 'Not rated yet. Pick a star' : 'Tap a star to change'}
+        </span>
+      </div>
+    );
+  }
+
+  const storeCard = (store: Store) => (
+    <div className="space-y-3">
+      <div>
+        <h2 className="font-medium text-stone-900">{store.name}</h2>
+        <p className="mt-0.5 text-sm text-stone-500">{store.address}</p>
+      </div>
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div>
+          <p className="mb-1 text-xs font-medium tracking-wide text-stone-500 uppercase">Overall</p>
+          <RatingSummary value={store.averageRating} count={store.ratingCount} />
+        </div>
+        <div>
+          <p className="mb-1 text-xs font-medium tracking-wide text-stone-500 uppercase">Your rating</p>
+          {yourRating(store)}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -123,6 +146,7 @@ export function StoresPage() {
             onSort={table.toggleSort}
             isLoading={stores.isPending}
             isFetching={stores.isPlaceholderData}
+            renderCard={storeCard}
             empty={
               table.hasFilters ? (
                 <EmptyState icon={SearchX} title="No stores match your search">

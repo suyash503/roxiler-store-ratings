@@ -68,8 +68,7 @@ export function AppShell() {
               className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900"
             >
               <LogOut className="size-4" aria-hidden />
-              <span className="hidden sm:inline">Log out</span>
-              <span className="sr-only sm:hidden">Log out</span>
+              <span className="sr-only sm:not-sr-only">Log out</span>
             </button>
           </div>
         </div>

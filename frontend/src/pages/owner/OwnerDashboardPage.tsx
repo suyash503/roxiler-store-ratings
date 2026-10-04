@@ -55,7 +55,10 @@ function Distribution({ dashboard }: { dashboard: OwnerDashboard }) {
             </span>
             <span className="text-right text-stone-500 tabular">
               {count}
-              <span className="sr-only"> ratings of {star} stars</span>
+              <span className="sr-only">
+                {' '}
+                {count === 1 ? 'rating' : 'ratings'} of {star} {star === '1' ? 'star' : 'stars'}
+              </span>
             </span>
           </li>
         );

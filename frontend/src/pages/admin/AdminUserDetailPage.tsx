@@ -2,10 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Store } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
-import { RatingSummary } from '../../components/StarRating';
+import { Stars } from '../../components/StarRating';
 import { Card, ErrorState, RoleBadge } from '../../components/ui';
 import { api } from '../../lib/api';
-import { formatDate } from '../../lib/format';
+import { formatDate, formatRating, plural } from '../../lib/format';
 import type { UserDetail } from '../../lib/types';
 
 function Detail({ label, children }: { label: string; children: ReactNode }) {
@@ -59,12 +59,20 @@ export function AdminUserDetailPage() {
                 <>
                   <p className="font-medium text-stone-800">{user.data.store.name}</p>
                   <p className="mt-4 text-sm text-stone-500">Rating</p>
-                  <p className="mt-1 text-3xl font-semibold tabular text-stone-900">
-                    {user.data.store.averageRating?.toFixed(1) ?? '—'}
-                  </p>
-                  <div className="mt-1">
-                    <RatingSummary value={user.data.store.averageRating} count={user.data.store.ratingCount} />
-                  </div>
+                  {user.data.store.averageRating == null ? (
+                    <p className="mt-1 text-sm text-stone-700">No ratings yet</p>
+                  ) : (
+                    <>
+                      <p className="mt-1 text-3xl font-semibold tabular text-stone-900">
+                        {formatRating(user.data.store.averageRating)}
+                        <span className="sr-only"> out of 5</span>
+                      </p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <Stars value={user.data.store.averageRating} />
+                        <span className="text-sm text-stone-500">from {plural(user.data.store.ratingCount, 'rating')}</span>
+                      </div>
+                    </>
+                  )}
                 </>
               ) : (
                 <p className="text-sm text-stone-500">No store assigned yet. Add one from the Stores page.</p>

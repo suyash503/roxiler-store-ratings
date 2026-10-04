@@ -32,8 +32,15 @@ export function RatingSummary({ value, count }: { value: number | null; count?: 
   return (
     <span className="inline-flex items-center gap-2" title={label}>
       <Stars value={value} />
-      <span className="text-sm font-medium tabular text-stone-800">{formatRating(value)}</span>
-      {count != null && <span className="text-xs text-stone-500 tabular">({count})</span>}
+      {/* Visual shorthand; screen readers get the full sentence below instead. */}
+      <span className="text-sm font-medium tabular text-stone-800" aria-hidden="true">
+        {formatRating(value)}
+      </span>
+      {count != null && (
+        <span className="text-xs text-stone-500 tabular" aria-hidden="true">
+          ({count})
+        </span>
+      )}
       <span className="sr-only">{label}</span>
     </span>
   );

@@ -25,9 +25,89 @@ interface Props<T, S extends string> {
   isFetching?: boolean;
   empty: ReactNode;
   onRowClick?: (row: T) => void;
+  /**
+   * Phone layout: below the `sm` breakpoint each row becomes this card, with a
+   * sort picker in place of the column headers. Without it the table scrolls.
+   */
+  renderCard?: (row: T) => ReactNode;
 }
 
-export function DataTable<T, S extends string>({
+export function DataTable<T, S extends string>(props: Props<T, S>) {
+  if (!props.renderCard) return <Table {...props} />;
+  return (
+    <>
+      <div className="hidden sm:block">
+        <Table {...props} />
+      </div>
+      <div className="sm:hidden">
+        <CardList {...props} renderCard={props.renderCard} />
+      </div>
+    </>
+  );
+}
+
+function CardList<T, S extends string>({
+  caption,
+  columns,
+  rows,
+  rowKey,
+  sortBy,
+  order,
+  onSort,
+  isLoading = false,
+  isFetching = false,
+  empty,
+  renderCard,
+}: Props<T, S> & { renderCard: (row: T) => ReactNode }) {
+  const sortable = columns.filter((column) => column.sortKey !== undefined);
+  return (
+    <section aria-label={caption}>
+      <div className="mb-3 flex items-center gap-2">
+        <label className="flex-1">
+          <span className="sr-only">Sort by</span>
+          <select
+            value={sortBy}
+            onChange={(event) => onSort(event.target.value as S)}
+            className="block h-10 w-full rounded-lg border-0 bg-white px-3 text-sm shadow-sm ring-1 ring-stone-300 ring-inset focus:ring-2 focus:ring-brand-600 focus:outline-none"
+          >
+            {sortable.map((column) => (
+              <option key={column.key} value={column.sortKey}>
+                Sort by {column.header.toLowerCase()}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={() => onSort(sortBy)}
+          className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-medium text-stone-700 shadow-sm ring-1 ring-stone-300 ring-inset hover:bg-stone-50"
+        >
+          {order === 'asc' ? <ArrowUp className="size-4" aria-hidden /> : <ArrowDown className="size-4" aria-hidden />}
+          {order === 'asc' ? 'Ascending' : 'Descending'}
+        </button>
+      </div>
+      {isLoading ? (
+        <ul className="space-y-3" aria-hidden="true">
+          {Array.from({ length: 3 }, (_, i) => (
+            <li key={i} className="h-28 animate-pulse rounded-xl bg-white ring-1 ring-stone-200" />
+          ))}
+        </ul>
+      ) : rows && rows.length > 0 ? (
+        <ul className={`space-y-3 transition-opacity ${isFetching ? 'opacity-60' : ''}`}>
+          {rows.map((row) => (
+            <li key={rowKey(row)} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-stone-200">
+              {renderCard(row)}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="rounded-xl bg-white px-4 py-10 text-center text-stone-500 ring-1 ring-stone-200">{empty}</div>
+      )}
+    </section>
+  );
+}
+
+function Table<T, S extends string>({
   caption,
   columns,
   rows,
@@ -41,7 +121,9 @@ export function DataTable<T, S extends string>({
   onRowClick,
 }: Props<T, S>) {
   return (
-    <div className="overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-stone-200">
+    // `relative` keeps the sr-only (position: absolute) labels inside the
+    // scroll box; otherwise they widen the whole page on phones.
+    <div className="relative overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-stone-200">
       <table className="min-w-full text-left text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead className="border-b border-stone-200 bg-stone-50/80 text-xs font-medium tracking-wide text-stone-500 uppercase">
