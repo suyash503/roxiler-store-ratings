@@ -11,6 +11,13 @@ export interface Env {
   CORS_ORIGINS: string[];
   /** bcrypt cost factor. Tests lower it to keep the suite fast. */
   BCRYPT_ROUNDS: number;
+  /** Send the session cookie only over HTTPS. Defaults to true in production. */
+  COOKIE_SECURE: boolean;
+  /**
+   * Express "trust proxy": how many proxy hops to trust for the client IP.
+   * Set it behind nginx, or the rate limiter sees every user as the proxy.
+   */
+  TRUST_PROXY: number;
 }
 
 export function validateEnv(raw: Record<string, unknown>): Env {
@@ -41,6 +48,12 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     errors.push('BCRYPT_ROUNDS must be an integer from 4 to 15');
   }
 
+  const cookieSecure = str('COOKIE_SECURE', nodeEnv === 'production' ? 'true' : 'false');
+  if (!['true', 'false'].includes(cookieSecure)) errors.push('COOKIE_SECURE must be true or false');
+
+  const trustProxy = Number(str('TRUST_PROXY', '0'));
+  if (!Number.isInteger(trustProxy) || trustProxy < 0) errors.push('TRUST_PROXY must be a whole number of hops');
+
   const env: Env = {
     NODE_ENV: nodeEnv as Env['NODE_ENV'],
     DATABASE_URL: str('DATABASE_URL'),
@@ -52,6 +65,8 @@ export function validateEnv(raw: Record<string, unknown>): Env {
       .map((origin) => origin.trim())
       .filter(Boolean),
     BCRYPT_ROUNDS: bcryptRounds,
+    COOKIE_SECURE: cookieSecure === 'true',
+    TRUST_PROXY: trustProxy,
   };
 
   if (errors.length > 0) {

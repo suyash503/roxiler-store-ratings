@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (lint + 85 e2e tests on PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: roxiler_test
+          POSTGRES_INITDB_ARGS: --locale-provider=icu --icu-locale=en-US
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/roxiler_test
+      JWT_SECRET: ci-only-secret-that-is-at-least-32-characters
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run lint -w backend
+      - run: npm test -w backend
+      - run: npm run build -w backend
+
+  frontend:
+    name: Frontend (lint + tests + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run lint -w frontend
+      - run: npm test -w frontend
+      - run: npm run build -w frontend
+
+  docker:
+    name: Docker Compose (build, start, log in through nginx)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose up --build --detach
+      - name: Wait for the stack (migrations + seed run first)
+        run: |
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:8080/api/health && exit 0
+            sleep 3
+          done
+          exit 1
+      - name: Smoke test through the web container
+        run: |
+          set -eux
+          curl -fsS http://localhost:8080/admin/users | grep -q '<div id="root">'
+          curl -fsS -c jar -H 'Content-Type: application/json' \
+            -d '{"email":"admin@example.com","password":"Admin@1234"}' \
+            http://localhost:8080/api/auth/login
+          curl -fsS -b jar http://localhost:8080/api/stats | grep -q '"totalStores":4'
+      - if: failure()
+        run: docker compose logs
+      - if: always()
+        run: docker compose down --volumes

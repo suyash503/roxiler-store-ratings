@@ -1,0 +1,49 @@
+# docker compose up --build   →   http://localhost:8080
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: roxiler
+      POSTGRES_PASSWORD: roxiler
+      POSTGRES_DB: roxiler
+      # ICU collation: names sort case-insensitively ("aarav" next to "Aarav"),
+      # same as a typical desktop install. Alpine's default sorts A–Z before a–z.
+      POSTGRES_INITDB_ARGS: --locale-provider=icu --icu-locale=en-US
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roxiler -d roxiler"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build: { context: ., dockerfile: backend/Dockerfile, target: migrate }
+    environment:
+      DATABASE_URL: postgresql://roxiler:roxiler@db:5432/roxiler
+    depends_on:
+      db: { condition: service_healthy }
+
+  api:
+    build: { context: ., dockerfile: backend/Dockerfile, target: runtime }
+    environment:
+      DATABASE_URL: postgresql://roxiler:roxiler@db:5432/roxiler
+      # Demo default. Set JWT_SECRET in your shell or a .env file for anything real.
+      JWT_SECRET: ${JWT_SECRET:-local-demo-secret-change-me-0123456789abcdef}
+      PORT: "4100"
+      CORS_ORIGINS: http://localhost:8080
+      TRUST_PROXY: "1"
+      # Plain HTTP here; set true once this sits behind HTTPS.
+      COOKIE_SECURE: "false"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build: { context: ., dockerfile: frontend/Dockerfile }
+    ports:
+      - "8080:80"
+    depends_on:
+      api: { condition: service_healthy }
+
+volumes:
+  pgdata:

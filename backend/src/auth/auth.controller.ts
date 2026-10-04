@@ -85,7 +85,7 @@ export class AuthController {
       // Lax keeps the cookie off cross-site POSTs, which (with the CORS
       // allow-list) is the CSRF defence for this JSON API.
       sameSite: 'lax',
-      secure: this.config.get('NODE_ENV', { infer: true }) === 'production',
+      secure: this.config.get('COOKIE_SECURE', { infer: true }),
       path: '/',
     };
   }
