@@ -66,12 +66,16 @@ async function main() {
     [Role.USER]: await hash(PASSWORDS.USER, 10),
   };
 
+  // Spread dates out so "Joined" and "Rated on" look like real history.
+  const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000);
+
   const userIds = new Map<string, number>();
-  for (const user of users) {
+  for (const [i, user] of users.entries()) {
+    const joined = daysAgo(90 - i * 4);
     const { id } = await prisma.user.upsert({
       where: { email: user.email },
-      create: { ...user, passwordHash: hashes[user.role] },
-      update: { name: user.name, address: user.address, role: user.role, passwordHash: hashes[user.role] },
+      create: { ...user, passwordHash: hashes[user.role], createdAt: joined },
+      update: { name: user.name, address: user.address, role: user.role, passwordHash: hashes[user.role], createdAt: joined },
     });
     userIds.set(user.email, id);
   }
@@ -87,13 +91,14 @@ async function main() {
     storeIds.set(store.email, id);
   }
 
-  for (const [userEmail, storeEmail, value] of ratings) {
+  for (const [i, [userEmail, storeEmail, value]] of ratings.entries()) {
     const userId = userIds.get(userEmail)!;
     const storeId = storeIds.get(storeEmail)!;
+    const ratedAt = daysAgo(28 - i * 2);
     await prisma.rating.upsert({
       where: { userId_storeId: { userId, storeId } },
-      create: { userId, storeId, value },
-      update: { value },
+      create: { userId, storeId, value, createdAt: ratedAt, updatedAt: ratedAt },
+      update: { value, createdAt: ratedAt, updatedAt: ratedAt },
     });
   }
 
