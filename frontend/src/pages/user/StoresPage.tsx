@@ -98,7 +98,7 @@ export function StoresPage() {
           onChange={(value) => rate.mutate({ store, value })}
         />
         <span className="text-xs text-stone-500">
-          {store.myRating == null ? 'Not rated yet. Pick a star' : 'Tap a star to change'}
+          {store.myRating == null ? 'Not rated yet. Pick a star' : 'Pick a star to change'}
         </span>
       </div>
     );
@@ -110,7 +110,7 @@ export function StoresPage() {
         <h2 className="font-medium text-stone-900">{store.name}</h2>
         <p className="mt-0.5 text-sm text-stone-500">{store.address}</p>
       </div>
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div>
           <p className="mb-1 text-xs font-medium tracking-wide text-stone-500 uppercase">Overall</p>
           <RatingSummary value={store.averageRating} count={store.ratingCount} />
